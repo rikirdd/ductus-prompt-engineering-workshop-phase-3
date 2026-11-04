@@ -5,10 +5,11 @@ import { EmptyState } from "./EmptyState";
 import { Fireworks } from "./Fireworks";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
+import { ProfileView } from "./ProfileView";
 import { reachedSwipeMilestone, SWIPE_MILESTONE } from "./milestone";
 import { isStreakMilestone, nextStreak } from "./streak";
 
-type View = "swipe" | "likes";
+type View = "swipe" | "likes" | "profile";
 
 interface Celebration {
   id: number;
@@ -58,6 +59,14 @@ export function App() {
 
   async function showSwipe() {
     setView("swipe");
+    await load();
+  }
+
+  /** Another user's data now applies to this device, so everything shown is reloaded. */
+  async function signedIn() {
+    setStreak(0);
+    setLikes(null);
+    setLoading(true);
     await load();
   }
 
@@ -111,10 +120,14 @@ export function App() {
         <button type="button" aria-current={view === "likes" ? "page" : undefined} onClick={showLikes}>
           Likes
         </button>
+        <button type="button" aria-current={view === "profile" ? "page" : undefined} onClick={() => setView("profile")}>
+          Profile
+        </button>
       </nav>
       {celebration?.kind === "confetti" && <Confetti key={celebration.id} message={celebration.message} />}
       {celebration?.kind === "fireworks" && <Fireworks key={celebration.id} message={celebration.message} />}
       {error && <p role="alert">Something went wrong: {error}. Is the backend running?</p>}
+      {view === "profile" && <ProfileView onSignedIn={signedIn} />}
       {view === "likes" && !error && (likes ? <LikesView memes={likes} /> : <p>Loading…</p>)}
       {view === "swipe" && loading && !error && <p>Loading…</p>}
       {view === "swipe" && !loading && !error && !meme && <EmptyState onReset={reset} />}

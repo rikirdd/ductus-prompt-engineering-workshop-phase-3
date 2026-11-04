@@ -2,6 +2,8 @@ import { createApp } from "./app.js";
 import { createMemeCatalog } from "./memes/catalog.js";
 import { seedMemeRepository } from "./memes/seed.js";
 import { createSqliteMemeRepository } from "./memes/sqlite.js";
+import { createProfileService } from "./profiles/service.js";
+import { createSqliteProfileRepository } from "./profiles/sqlite.js";
 import { createSqliteSwipeRepository } from "./swipes/sqlite.js";
 import { createSwipeService } from "./swipes/service.js";
 
@@ -18,6 +20,9 @@ const swipeService = createSwipeService(memeCatalog, createSqliteSwipeRepository
 // Set STATIC_DIR to the built frontend (frontend/dist) to serve it from this process, as the container does.
 const staticDir = process.env.STATIC_DIR;
 
-createApp(swipeService, { staticDir }).listen(port, () => {
+// Profiles (nickname and emoji per user id) live in the same database.
+const profileService = createProfileService(createSqliteProfileRepository(databasePath));
+
+createApp(swipeService, profileService, { staticDir }).listen(port, () => {
   console.log(`Backend listening on http://localhost:${port} (database: ${databasePath})`);
 });
