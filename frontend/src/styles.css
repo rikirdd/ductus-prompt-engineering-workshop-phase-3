@@ -13,6 +13,7 @@ main {
 }
 
 .meme-card {
+  position: relative;
   margin: 0;
   background: #fff;
   border-radius: 16px;
@@ -23,6 +24,31 @@ main {
   user-select: none;
   cursor: grab;
   transition: transform 0.2s ease;
+}
+
+.stamp {
+  position: absolute;
+  top: 1.5rem;
+  padding: 0.25rem 0.75rem;
+  border: 5px solid currentColor;
+  border-radius: 10px;
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  background: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+}
+
+.stamp-like {
+  left: 1.25rem;
+  color: #1fa463;
+  transform: rotate(-15deg);
+}
+
+.stamp-nope {
+  right: 1.25rem;
+  color: #e5484d;
+  transform: rotate(15deg);
 }
 
 .meme-card.dragging {
