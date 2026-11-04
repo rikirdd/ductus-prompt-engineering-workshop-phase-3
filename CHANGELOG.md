@@ -6,6 +6,9 @@
 
 ### Added
 
+- Swipe milestone: the 30th swipe launches CSS fireworks with a synthesized whistle-and-bang sound (Web Audio API, no audio files or new dependency) and "🎆 30 memes swiped! You legend.", exactly once per swipe history. Reduced-motion users get the message and sound without the animation; without Web Audio it stays silent (`SWIPE_MILESTONE` in `frontend/src/milestone.ts`; the ticket asked for 100, lowered to 30 so it is reachable with the 30 seed memes). It outranks a streak on the same swipe and counts stored swipes, so it survives reloads and restarts (#19)
+- `POST /api/swipes` also returns the user's total `swipeCount`, from `countSwipes` on the swipe service (#19)
+
 - Card transitions: a swiped card flies off in its direction and the next card springs in, for buttons, arrow keys and drags; with `prefers-reduced-motion` the cards only fade (#17)
 - Streak confetti: five likes in a row (and every multiple of five) fire CSS confetti with a "5 likes in a row!" message, a nope resets the streak, and reduced-motion users get only the message; no new dependency (#18)
 - LIKE and NOPE stamps on the swipe card: the stamp fades in with the drag distance, and buttons, arrow keys and a released drag show the full stamp for 300 ms before the swipe is sent (#16)
@@ -49,6 +52,9 @@
 - `.nvmrc` and `engines` requiring Node 22+ and npm 10+; README with requirements and quick start (#2)
 
 ### Changed
+
+- `Confetti` takes a `message` instead of a streak number (#19)
+- `.gitignore` ignores `.vite` and `data/` again; the two entries had been merged into one line, so the SQLite database showed up as untracked (#19)
 
 - `MemeCard` now takes `onSwipe(direction)` and owns the Like and Nope buttons, which moved out of `App`; buttons are disabled while a swipe request is in flight (#7)
 - The plain "No more memes." text is replaced by the `EmptyState` component (#5)

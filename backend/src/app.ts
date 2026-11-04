@@ -39,7 +39,7 @@ export function createApp(swipeService: SwipeService, options: AppOptions = {}) 
     res.json({ meme: swipeService.getNextMeme(userId) });
   });
 
-  // 200 with the stored swipe. Swiping the same meme twice keeps the first swipe.
+  // 200 with the stored swipe and the user's total swipeCount. Swiping the same meme twice keeps the first swipe.
   app.post("/api/swipes", (req, res) => {
     const userId = requireUserId(req, res);
     if (!userId) return;
@@ -53,7 +53,8 @@ export function createApp(swipeService: SwipeService, options: AppOptions = {}) 
       return;
     }
     try {
-      res.json(swipeService.recordSwipe(userId, memeId, direction));
+      const stored = swipeService.recordSwipe(userId, memeId, direction);
+      res.json({ ...stored, swipeCount: swipeService.countSwipes(userId) });
     } catch (err) {
       if (err instanceof UnknownMemeError) {
         res.status(404).json({ error: err.message });

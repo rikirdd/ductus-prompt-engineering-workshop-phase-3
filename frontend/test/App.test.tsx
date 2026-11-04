@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
+import { SWIPE_MILESTONE } from "../src/milestone";
 
 const first = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg" };
 const second = { id: "m2", caption: "Friday deploy", imageUrl: "/api/memes/images/m2.svg" };
@@ -159,7 +160,9 @@ describe("App", () => {
     function stubSwipes(count: number) {
       const fetchMock = vi.fn().mockResolvedValueOnce(ok({ meme: first }));
       for (let index = 0; index < count; index++) {
-        fetchMock.mockResolvedValueOnce(ok({})).mockResolvedValueOnce(ok({ meme: index % 2 ? first : second }));
+        fetchMock
+          .mockResolvedValueOnce(ok({ swipeCount: index + 1 }))
+          .mockResolvedValueOnce(ok({ meme: index % 2 ? first : second }));
       }
       vi.stubGlobal("fetch", fetchMock);
     }
@@ -178,6 +181,8 @@ describe("App", () => {
       await swipe("Like");
 
       expect(screen.getByRole("status")).toHaveTextContent("5 likes in a row!");
+      expect(screen.getByTestId("confetti-pieces")).toBeInTheDocument();
+      expect(screen.queryByTestId("fireworks-bursts")).not.toBeInTheDocument();
     });
 
     it("does not celebrate when a nope breaks the streak", async () => {
@@ -187,6 +192,69 @@ describe("App", () => {
       for (const label of ["Like", "Like", "Like", "Nope", "Like"] as const) await swipe(label);
 
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("swipe milestone", () => {
+    /** Answers the first meme load, then each swipe with the given stored swipe count. */
+    function stubSwipeCounts(counts: number[]) {
+      const fetchMock = vi.fn().mockResolvedValueOnce(ok({ meme: first }));
+      counts.forEach((swipeCount, index) => {
+        fetchMock
+          .mockResolvedValueOnce(ok({ memeId: "m", direction: "nope", swipeCount }))
+          .mockResolvedValueOnce(ok({ meme: index % 2 ? first : second }));
+      });
+      vi.stubGlobal("fetch", fetchMock);
+    }
+
+    async function nope() {
+      fireEvent.click(await screen.findByRole("button", { name: "Nope" }));
+      await waitFor(() => expect(screen.getByRole("button", { name: "Nope" })).toBeEnabled());
+    }
+
+    it("celebrates on the milestone swipe only, not the one before or after", async () => {
+      stubSwipeCounts([SWIPE_MILESTONE - 1, SWIPE_MILESTONE, SWIPE_MILESTONE + 1]);
+      render(<App />);
+
+      await nope();
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+      await nope();
+      expect(screen.getByRole("status")).toHaveTextContent(`${SWIPE_MILESTONE} memes swiped!`);
+      expect(screen.getByTestId("fireworks-bursts")).toBeInTheDocument();
+
+      const shown = screen.getByRole("status");
+      await nope();
+      expect(screen.getByRole("status")).toBe(shown);
+    });
+
+    it("does not celebrate again when the count stays at the milestone", async () => {
+      stubSwipeCounts([SWIPE_MILESTONE, SWIPE_MILESTONE]);
+      render(<App />);
+      await nope();
+      const shown = screen.getByRole("status");
+
+      await nope();
+
+      expect(screen.getByRole("status")).toBe(shown);
+    });
+
+    it("outranks a streak reached on the same swipe", async () => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(ok({ meme: first }));
+      for (let index = 0; index < 5; index++) {
+        fetchMock
+          .mockResolvedValueOnce(ok({ swipeCount: SWIPE_MILESTONE - 4 + index }))
+          .mockResolvedValueOnce(ok({ meme: index % 2 ? first : second }));
+      }
+      vi.stubGlobal("fetch", fetchMock);
+      render(<App />);
+
+      for (let index = 0; index < 5; index++) {
+        fireEvent.click(await screen.findByRole("button", { name: "Like" }));
+        await waitFor(() => expect(screen.getByRole("button", { name: "Like" })).toBeEnabled());
+      }
+
+      expect(screen.getByRole("status")).toHaveTextContent(`${SWIPE_MILESTONE} memes swiped!`);
     });
   });
 

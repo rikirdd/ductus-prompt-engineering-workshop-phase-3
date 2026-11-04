@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
 import { prefersReducedMotion } from "./motion";
 
-/** How long (in ms) the confetti and the streak message stay on screen. */
+/** How long (in ms) the confetti and the message stay on screen. */
 export const CONFETTI_DURATION_MS = 2000;
 
 const PIECE_COUNT = 40;
 const COLORS = ["#e5484d", "#1fa463", "#f5a623", "#3e63dd", "#d6409f"];
 
 interface ConfettiProps {
-  /** The streak being celebrated, shown in the message. */
-  streak: number;
+  /** What is being celebrated, announced as a status message. */
+  message: string;
 }
 
 /**
- * A short burst of CSS confetti with a streak message. Remount it (change its key) to fire again.
+ * A short burst of CSS confetti with a message. Remount it (change its key) to fire again.
  * Users who prefer reduced motion get only the message.
  */
-export function Confetti({ streak }: ConfettiProps) {
+export function Confetti({ message }: ConfettiProps) {
   const [visible, setVisible] = useState(true);
   const [reducedMotion] = useState(prefersReducedMotion);
 
@@ -29,8 +29,8 @@ export function Confetti({ streak }: ConfettiProps) {
 
   return (
     <div className="confetti">
-      <p role="status" className="streak-message">
-        🔥 {streak} likes in a row!
+      <p role="status" className="celebration-message">
+        {message}
       </p>
       {!reducedMotion && (
         <div className="confetti-pieces" aria-hidden="true" data-testid="confetti-pieces">

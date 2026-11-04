@@ -95,7 +95,18 @@ describe("POST /api/swipes", () => {
     const res = await swipe(app, "u1", { memeId: meme.id, direction: "like" });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ memeId: meme.id, direction: "like" });
+    expect(res.body).toEqual({ memeId: meme.id, direction: "like", swipeCount: 1 });
+  });
+
+  it("returns the user's growing swipe count", async () => {
+    const app = setup();
+    const first = (await next(app, "u1")).body.meme;
+    await swipe(app, "u1", { memeId: first.id, direction: "like" });
+    const second = (await next(app, "u1")).body.meme;
+
+    const res = await swipe(app, "u1", { memeId: second.id, direction: "nope" });
+
+    expect(res.body.swipeCount).toBe(2);
   });
 
   it("rejects a request without a user id", async () => {
@@ -152,7 +163,7 @@ describe("POST /api/swipes", () => {
     const res = await swipe(app, "u1", { memeId: meme.id, direction: "nope" });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ memeId: meme.id, direction: "like" });
+    expect(res.body).toEqual({ memeId: meme.id, direction: "like", swipeCount: 1 });
     expect((await next(app, "u1")).body.meme.id).not.toBe(meme.id);
   });
 });

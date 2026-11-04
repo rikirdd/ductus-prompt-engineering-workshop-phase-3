@@ -10,14 +10,14 @@ afterEach(() => {
 
 describe("Confetti", () => {
   it("shows the streak message and confetti pieces", () => {
-    render(<Confetti streak={5} />);
+    render(<Confetti message="5 likes in a row!" />);
 
     expect(screen.getByRole("status")).toHaveTextContent("5 likes in a row!");
     expect(screen.getByTestId("confetti-pieces").children.length).toBeGreaterThan(0);
   });
 
   it("disappears after its duration", () => {
-    render(<Confetti streak={5} />);
+    render(<Confetti message="5 likes in a row!" />);
 
     act(() => vi.advanceTimersByTime(CONFETTI_DURATION_MS));
 
@@ -27,7 +27,7 @@ describe("Confetti", () => {
   it("shows only the message when the user prefers reduced motion", () => {
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
 
-    render(<Confetti streak={5} />);
+    render(<Confetti message="5 likes in a row!" />);
 
     expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.queryByTestId("confetti-pieces")).not.toBeInTheDocument();

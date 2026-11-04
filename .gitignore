@@ -3,4 +3,5 @@
 node_modules
 dist
 *.tsbuildinfo
-.vite/data/
+.vite
+data/

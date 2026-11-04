@@ -8,6 +8,13 @@ export interface Meme {
 
 export type Direction = "like" | "nope";
 
+export interface SwipeResult {
+  memeId: string;
+  direction: Direction;
+  /** How many memes the user has swiped in total, counted from stored swipes. */
+  swipeCount: number;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -23,8 +30,8 @@ export async function fetchNextMeme(): Promise<Meme | null> {
   return meme;
 }
 
-export async function sendSwipe(memeId: string, direction: Direction): Promise<void> {
-  await request("/api/swipes", {
+export async function sendSwipe(memeId: string, direction: Direction): Promise<SwipeResult> {
+  return request<SwipeResult>("/api/swipes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ memeId, direction }),
