@@ -6,6 +6,8 @@
 
 ### Added
 
+- Post your own meme: `POST /api/memes` (caption plus a PNG or JPEG as base64, type detected from the file bytes, limits 140 characters and 5 MB) stores the image in `UPLOAD_DIR` and adds the meme to everyone's pile; new Post tab with an upload form (#9)
+
 - Memes are read from a `MemeRepository` (in-memory and SQLite implementations) instead of a fixed list. The 30 seed memes are added to the database on first start and never duplicated on later starts (#8)
 
 

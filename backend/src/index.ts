@@ -1,5 +1,8 @@
+import path from "node:path";
 import { createApp } from "./app.js";
 import { createMemeCatalog } from "./memes/catalog.js";
+import { createFileImageStore } from "./memes/images.js";
+import { createMemeService } from "./memes/service.js";
 import { seedMemeRepository } from "./memes/seed.js";
 import { createSqliteMemeRepository } from "./memes/sqlite.js";
 import { createSqliteSwipeRepository } from "./swipes/sqlite.js";
@@ -11,13 +14,19 @@ const port = Number(process.env.PORT ?? 3000);
 const databasePath = process.env.DATABASE_PATH ?? "data/meme-tinder.db";
 
 // Memes live in the same database. The seed memes are added on first start and never duplicated.
-const memeCatalog = createMemeCatalog(seedMemeRepository(createSqliteMemeRepository(databasePath)));
+const memeRepository = seedMemeRepository(createSqliteMemeRepository(databasePath));
+const memeCatalog = createMemeCatalog(memeRepository);
+
+// Posted images are files next to the database by default, so they live on the same Docker volume.
+const uploadDir = process.env.UPLOAD_DIR ?? path.join(path.dirname(databasePath), "uploads");
+const imageStore = createFileImageStore(uploadDir);
+const memeService = createMemeService(memeRepository, imageStore);
 
 const swipeService = createSwipeService(memeCatalog, createSqliteSwipeRepository(databasePath));
 
 // Set STATIC_DIR to the built frontend (frontend/dist) to serve it from this process, as the container does.
 const staticDir = process.env.STATIC_DIR;
 
-createApp(swipeService, { staticDir }).listen(port, () => {
+createApp(swipeService, memeService, imageStore, { staticDir }).listen(port, () => {
   console.log(`Backend listening on http://localhost:${port} (database: ${databasePath})`);
 });
