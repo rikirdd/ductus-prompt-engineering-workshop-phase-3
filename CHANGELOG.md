@@ -6,6 +6,10 @@
 
 ### Added
 
+- Compatibility score between two people: the share of memes both swiped where they made the same choice, shown from the first shared swipe and absent (not 0%) when nothing is shared; `createPeopleService` with `compatibility` (#37)
+- Demo people: five seeded profiles with believable, deterministic swipe histories and different tastes, added on every start without duplicates and marked as demo (`demo` in the API, "(demo person)" in the UI); `ProfileRepository` gains `list` and `saveDemo`, and existing SQLite databases get an `is_demo` column (#38)
+- People tab and `GET /api/people`: everyone else with their compatibility, best match first, people without shared swipes last; user ids are never exposed (#39)
+- Memes you both loved: tap a person on the People tab, backed by `GET /api/people/:nickname/shared-memes` (#40)
 - Swipe milestone: the 30th swipe launches CSS fireworks with a synthesized whistle-and-bang sound (Web Audio API, no audio files or new dependency) and "🎆 30 memes swiped! You legend.", exactly once per swipe history. Reduced-motion users get the message and sound without the animation; without Web Audio it stays silent (`SWIPE_MILESTONE` in `frontend/src/milestone.ts`; the ticket asked for 100, lowered to 30 so it is reachable with the 30 seed memes). It outranks a streak on the same swipe and counts stored swipes, so it survives reloads and restarts (#19)
 - `POST /api/swipes` also returns the user's total `swipeCount`, from `countSwipes` on the swipe service (#19)
 - Profiles: every user has a unique nickname (ignoring case) and an emoji, stored in SQLite via a `ProfileRepository` (in-memory and SQLite implementations); `GET /api/profile` and `PUT /api/profile`. A user without a profile, such as someone who swiped before profiles existed, gets a generated one on first contact and keeps all their swipes (#32, #33)

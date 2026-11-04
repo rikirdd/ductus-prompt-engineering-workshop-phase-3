@@ -3,12 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createApp } from "../src/app.js";
-import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
-import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
-import { createProfileService } from "../src/profiles/service.js";
-import { createSwipeService } from "../src/swipes/service.js";
-import { createTestCatalog } from "./helpers.js";
+import { createTestBackend } from "./helpers.js";
 
 let staticDir: string;
 
@@ -20,12 +15,7 @@ beforeAll(() => {
 
 afterAll(() => fs.rmSync(staticDir, { recursive: true, force: true }));
 
-const setup = (options?: { staticDir?: string }) =>
-  createApp(
-    createSwipeService(createTestCatalog(), createInMemorySwipeRepository()),
-    createProfileService(createInMemoryProfileRepository()),
-    options,
-  );
+const setup = (options?: { staticDir?: string }) => createTestBackend(options).app;
 
 describe("static frontend serving", () => {
   it("serves index.html at / and built files by path", async () => {

@@ -23,12 +23,23 @@ export function createSqliteProfileRepository(path: string): SqliteProfileReposi
     )
   `);
 
+  // Databases created before demo people existed get the column added.
+  const columns = db.prepare("PRAGMA table_info(profiles)").all();
+  if (!columns.some((column) => column.name === "is_demo")) {
+    db.exec("ALTER TABLE profiles ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0");
+  }
+
   const get = db.prepare("SELECT nickname, emoji FROM profiles WHERE user_id = ?");
   const findByKey = db.prepare("SELECT user_id FROM profiles WHERE nickname_key = ?");
   const upsert = db.prepare(`
     INSERT INTO profiles (user_id, nickname, nickname_key, emoji) VALUES (?, ?, ?, ?)
     ON CONFLICT (user_id) DO UPDATE SET nickname = excluded.nickname, nickname_key = excluded.nickname_key, emoji = excluded.emoji
   `);
+
+  const listAll = db.prepare("SELECT user_id, nickname, emoji, is_demo FROM profiles ORDER BY rowid");
+  const insertDemo = db.prepare(
+    "INSERT INTO profiles (user_id, nickname, nickname_key, emoji, is_demo) VALUES (?, ?, ?, ?, 1) ON CONFLICT (user_id) DO NOTHING",
+  );
 
   return {
     getByUserId: (userId) => {
@@ -45,6 +56,21 @@ export function createSqliteProfileRepository(path: string): SqliteProfileReposi
         return true;
       } catch (err) {
         // The unique index rejected the nickname because another user has it.
+        if (err instanceof Error && /UNIQUE constraint failed/.test(err.message)) return false;
+        throw err;
+      }
+    },
+    list: () =>
+      listAll.all().map((row) => ({
+        userId: String(row.user_id),
+        profile: { nickname: String(row.nickname), emoji: String(row.emoji) },
+        demo: row.is_demo === 1,
+      })),
+    saveDemo: (userId, profile) => {
+      try {
+        insertDemo.run(userId, profile.nickname, nicknameKey(profile.nickname), profile.emoji);
+        return true;
+      } catch (err) {
         if (err instanceof Error && /UNIQUE constraint failed/.test(err.message)) return false;
         throw err;
       }

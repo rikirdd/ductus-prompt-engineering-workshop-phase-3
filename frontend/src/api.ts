@@ -89,3 +89,26 @@ export async function login(nickname: string): Promise<{ userId: string; profile
     body: JSON.stringify({ nickname }),
   });
 }
+
+/** Another person with their compatibility with the user. */
+export interface Person {
+  nickname: string;
+  emoji: string;
+  /** A seeded demo person, not a real user. */
+  demo: boolean;
+  /** Percentage, or null while you have swiped no meme in common. */
+  compatibility: number | null;
+  sharedSwipes: number;
+}
+
+/** Everyone else, best match first. */
+export async function fetchPeople(): Promise<Person[]> {
+  const { people } = await request<{ people: Person[] }>("/api/people");
+  return people;
+}
+
+/** The memes both the user and the person with this nickname liked. */
+export async function fetchSharedMemes(nickname: string): Promise<Meme[]> {
+  const { memes } = await request<{ memes: Meme[] }>(`/api/people/${encodeURIComponent(nickname)}/shared-memes`);
+  return memes;
+}
