@@ -41,7 +41,18 @@ All endpoints are under `/api` and need an `X-User-Id` header (the frontend crea
 | `POST /api/swipes`      | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                       |
 | `GET /api/likes`        | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
 | `DELETE /api/swipes`    | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
+| `GET /api/profile`      | `200 { "profile": { "nickname", "emoji" } }`. A user without a profile gets a generated one ("Meme Fan 4821")  |
+| `PUT /api/profile`      | Body `{ "nickname": "...", "emoji": "..." }` (nickname 1 to 20 characters, one emoji). `200` with the profile   |
+| `POST /api/login`       | Body `{ "nickname": "..." }`. `200 { "userId", "profile" }`; needs no `X-User-Id` header and no password        |
 
-Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id. Swiping the same meme twice is idempotent: the first swipe is kept.
+Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id or an unknown nickname at login, `409` when a nickname is already taken (ignoring case). Swiping the same meme twice is idempotent: the first swipe is kept.
 
 Swipes are stored in a SQLite file (`backend/src/swipes/sqlite.ts`, path set by `DATABASE_PATH`, default `data/meme-tinder.db`), so they survive restarts. The `SwipeRepository` interface in `backend/src/swipes/repository.ts` is where another database plugs in.
+
+## Profiles and signing in
+
+Everyone has a profile with a unique nickname (ignoring case) and an emoji, stored next to the swipes in the same SQLite file (`backend/src/profiles/`). People who swiped before profiles existed get a generated profile the first time they are seen, and keep all their swipes because the user id does not change.
+
+To use your memes and likes on another device, open the Profile tab and sign in with your nickname.
+
+**Known limitation:** signing in needs only the nickname, with no password, so anyone who knows a nickname can sign in as that person. The product owner accepted this for now. Do not use it for anything that must stay private.

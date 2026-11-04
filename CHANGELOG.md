@@ -6,9 +6,16 @@
 
 ### Added
 
+- Profiles: every user has a unique nickname (ignoring case) and an emoji, stored in SQLite via a `ProfileRepository` (in-memory and SQLite implementations); `GET /api/profile` and `PUT /api/profile`. A user without a profile, such as someone who swiped before profiles existed, gets a generated one on first contact and keeps all their swipes (#32, #33)
+- Sign in on a new device with only a username: `POST /api/login`, documented in the README as a known limitation because there is no password (#34)
+- Profile tab: edit nickname and emoji, and sign in with a username; the API's error text (for example "nickname is already taken") is shown in the UI (#35)
+
 - Card transitions: a swiped card flies off in its direction and the next card springs in, for buttons, arrow keys and drags; with `prefers-reduced-motion` the cards only fade (#17)
 - Streak confetti: five likes in a row (and every multiple of five) fire CSS confetti with a "5 likes in a row!" message, a nope resets the streak, and reduced-motion users get only the message; no new dependency (#18)
 - LIKE and NOPE stamps on the swipe card: the stamp fades in with the drag distance, and buttons, arrow keys and a released drag show the full stamp for 300 ms before the swipe is sent (#16)
+- `BACKLOG.md` tracking the epics and tickets in priority order: the five vision 002 epics (#27 to #31) and their tickets first, the unfinished vision 001 work parked below, the PO decisions, and a process for the next pivot
+
+- Post your own meme: `POST /api/memes` (caption plus a PNG or JPEG as base64, type detected from the file bytes, limits 140 characters and 5 MB) stores the image in `UPLOAD_DIR` and adds the meme to everyone's pile; new Post tab with an upload form (#9)
 
 - Memes are read from a `MemeRepository` (in-memory and SQLite implementations) instead of a fixed list. The 30 seed memes are added to the database on first start and never duplicated on later starts (#8)
 

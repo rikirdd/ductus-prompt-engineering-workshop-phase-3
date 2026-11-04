@@ -4,9 +4,10 @@ import { Confetti } from "./Confetti";
 import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
+import { ProfileView } from "./ProfileView";
 import { isStreakMilestone, nextStreak } from "./streak";
 
-type View = "swipe" | "likes";
+type View = "swipe" | "likes" | "profile";
 
 export function App() {
   const [view, setView] = useState<View>("swipe");
@@ -47,6 +48,14 @@ export function App() {
 
   async function showSwipe() {
     setView("swipe");
+    await load();
+  }
+
+  /** Another user's data now applies to this device, so everything shown is reloaded. */
+  async function signedIn() {
+    setStreak(0);
+    setLikes(null);
+    setLoading(true);
     await load();
   }
 
@@ -91,9 +100,13 @@ export function App() {
         <button type="button" aria-current={view === "likes" ? "page" : undefined} onClick={showLikes}>
           Likes
         </button>
+        <button type="button" aria-current={view === "profile" ? "page" : undefined} onClick={() => setView("profile")}>
+          Profile
+        </button>
       </nav>
       {celebration && <Confetti key={celebration.id} streak={celebration.streak} />}
       {error && <p role="alert">Something went wrong: {error}. Is the backend running?</p>}
+      {view === "profile" && <ProfileView onSignedIn={signedIn} />}
       {view === "likes" && !error && (likes ? <LikesView memes={likes} /> : <p>Loading…</p>)}
       {view === "swipe" && loading && !error && <p>Loading…</p>}
       {view === "swipe" && !loading && !error && !meme && <EmptyState onReset={reset} />}
