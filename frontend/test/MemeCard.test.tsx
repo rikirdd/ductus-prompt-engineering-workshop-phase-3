@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { SWIPE_THRESHOLD, MemeCard } from "../src/MemeCard";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { STAMP_DURATION_MS, SWIPE_THRESHOLD, MemeCard } from "../src/MemeCard";
 
 const meme = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg" };
 
@@ -10,11 +10,19 @@ function setup(disabled = false) {
   return { onSwipe, card: screen.getByRole("img", { name: meme.caption }).closest("figure")! };
 }
 
+/** Lets the stamp finish so the swipe is reported. */
+function finishStamp() {
+  act(() => vi.advanceTimersByTime(STAMP_DURATION_MS));
+}
+
 function drag(card: HTMLElement, distance: number) {
   fireEvent.pointerDown(card, { clientX: 200, pointerId: 1 });
   fireEvent.pointerMove(card, { clientX: 200 + distance, pointerId: 1 });
   fireEvent.pointerUp(card, { clientX: 200 + distance, pointerId: 1 });
 }
+
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => vi.useRealTimers());
 
 describe("MemeCard", () => {
   it("shows the meme image with the caption as alt text", () => {
@@ -30,6 +38,7 @@ describe("MemeCard", () => {
     const { onSwipe } = setup();
 
     fireEvent.click(screen.getByRole("button", { name: label }));
+    finishStamp();
 
     expect(onSwipe).toHaveBeenCalledExactlyOnceWith(direction);
   });
@@ -41,6 +50,7 @@ describe("MemeCard", () => {
     const { onSwipe } = setup();
 
     fireEvent.keyDown(window, { key });
+    finishStamp();
 
     expect(onSwipe).toHaveBeenCalledExactlyOnceWith(direction);
   });
@@ -49,6 +59,7 @@ describe("MemeCard", () => {
     const { onSwipe } = setup();
 
     fireEvent.keyDown(window, { key: "ArrowUp" });
+    finishStamp();
 
     expect(onSwipe).not.toHaveBeenCalled();
   });
@@ -60,6 +71,7 @@ describe("MemeCard", () => {
     const { onSwipe, card } = setup();
 
     drag(card, distance);
+    finishStamp();
 
     expect(onSwipe).toHaveBeenCalledExactlyOnceWith(direction);
   });
@@ -81,9 +93,102 @@ describe("MemeCard", () => {
 
     drag(card, SWIPE_THRESHOLD * 2);
     fireEvent.keyDown(window, { key: "ArrowRight" });
+    finishStamp();
 
     expect(onSwipe).not.toHaveBeenCalled();
+    expect(screen.queryByText("LIKE")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Like" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Nope" })).toBeDisabled();
+  });
+
+  describe("stamps", () => {
+    it("shows no stamp before a swipe", () => {
+      setup();
+
+      expect(screen.queryByText("LIKE")).not.toBeInTheDocument();
+      expect(screen.queryByText("NOPE")).not.toBeInTheDocument();
+    });
+
+    it.each([
+      [50, "LIKE", "0.5"],
+      [-25, "NOPE", "0.25"],
+      [SWIPE_THRESHOLD * 2, "LIKE", "1"],
+    ])("fades in while dragging %ipx: %s at opacity %s", (distance, label, opacity) => {
+      const { card } = setup();
+
+      fireEvent.pointerDown(card, { clientX: 200, pointerId: 1 });
+      fireEvent.pointerMove(card, { clientX: 200 + distance, pointerId: 1 });
+
+      expect(screen.getByText(label)).toHaveStyle({ opacity });
+    });
+
+    it("hides the stamp when a short drag snaps back", () => {
+      const { card } = setup();
+
+      drag(card, SWIPE_THRESHOLD / 2);
+
+      expect(screen.queryByText("LIKE")).not.toBeInTheDocument();
+    });
+
+    it.each([
+      [SWIPE_THRESHOLD, "LIKE", "like"],
+      [-SWIPE_THRESHOLD, "NOPE", "nope"],
+    ])("shows the full stamp after a %ipx drag before reporting the swipe", (distance, label, direction) => {
+      const { onSwipe, card } = setup();
+
+      drag(card, distance);
+
+      expect(screen.getByText(label)).toHaveStyle({ opacity: "1" });
+      expect(onSwipe).not.toHaveBeenCalled();
+      finishStamp();
+      expect(onSwipe).toHaveBeenCalledExactlyOnceWith(direction);
+    });
+
+    it.each([
+      ["Like", "LIKE"],
+      ["Nope", "NOPE"],
+    ])("shows the %s stamp when its button is clicked", (button, label) => {
+      setup();
+
+      fireEvent.click(screen.getByRole("button", { name: button }));
+
+      expect(screen.getByText(label)).toHaveStyle({ opacity: "1" });
+    });
+
+    it.each([
+      ["ArrowRight", "LIKE"],
+      ["ArrowLeft", "NOPE"],
+    ])("shows the stamp when %s is pressed", (key, label) => {
+      setup();
+
+      fireEvent.keyDown(window, { key });
+
+      expect(screen.getByText(label)).toHaveStyle({ opacity: "1" });
+    });
+
+    it("ignores further input while the stamp shows", () => {
+      const { onSwipe } = setup();
+
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+      fireEvent.keyDown(window, { key: "ArrowLeft" });
+      fireEvent.click(screen.getByRole("button", { name: "Nope" }));
+      finishStamp();
+
+      expect(onSwipe).toHaveBeenCalledExactlyOnceWith("like");
+      expect(screen.queryByText("NOPE")).not.toBeInTheDocument();
+    });
+
+    it("clears the stamp and accepts input again once the swipe has settled", async () => {
+      const onSwipe = vi.fn().mockResolvedValue(undefined);
+      render(<MemeCard meme={meme} onSwipe={onSwipe} />);
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+
+      await act(async () => vi.advanceTimersByTime(STAMP_DURATION_MS));
+
+      expect(screen.queryByText("LIKE")).not.toBeInTheDocument();
+      fireEvent.keyDown(window, { key: "ArrowLeft" });
+      finishStamp();
+      expect(onSwipe).toHaveBeenLastCalledWith("nope");
+    });
   });
 });

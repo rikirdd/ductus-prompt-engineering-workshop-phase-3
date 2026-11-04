@@ -150,6 +150,8 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Like" }));
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Like" })).toBeEnabled();
+    expect(screen.queryByText("LIKE")).not.toBeInTheDocument();
   });
 
   describe("likes view", () => {

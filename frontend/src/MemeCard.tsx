@@ -1,12 +1,21 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import type { Direction, Meme } from "./api";
 
 /** Horizontal drag distance (in px) a release must pass to count as a swipe. */
 export const SWIPE_THRESHOLD = 100;
 
+/** How long (in ms) the full LIKE or NOPE stamp shows before the swipe is reported. */
+export const STAMP_DURATION_MS = 300;
+
+const STAMP_LABELS: Record<Direction, string> = { like: "LIKE", nope: "NOPE" };
+
 interface MemeCardProps {
   meme: Meme;
-  onSwipe: (direction: Direction) => void;
+  /**
+   * Called once the stamp has shown. If it returns a promise, the card is ready again when it settles,
+   * so a failed swipe can be retried; a successful swipe normally replaces the card instead.
+   */
+  onSwipe: (direction: Direction) => void | Promise<void>;
   /** Ignores drags, buttons and arrow keys, e.g. while a swipe request is in flight. */
   disabled?: boolean;
 }
@@ -14,21 +23,55 @@ interface MemeCardProps {
 export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
+  /** The direction of a swipe that is showing its stamp or waiting for the parent. */
+  const [committed, setCommitted] = useState<Direction | null>(null);
   const startX = useRef(0);
+  const committing = useRef(false);
+  const mounted = useRef(true);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const inactive = disabled || committed !== null;
 
   useEffect(() => {
-    if (disabled) return;
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(timer.current);
+    };
+  }, []);
+
+  const commit = useCallback(
+    (direction: Direction) => {
+      if (disabled || committing.current) return;
+      committing.current = true;
+      setCommitted(direction);
+      timer.current = setTimeout(async () => {
+        try {
+          await onSwipe(direction);
+        } finally {
+          if (mounted.current) {
+            committing.current = false;
+            setCommitted(null);
+            setOffset(0);
+          }
+        }
+      }, STAMP_DURATION_MS);
+    },
+    [disabled, onSwipe],
+  );
+
+  useEffect(() => {
+    if (inactive) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      if (event.key === "ArrowRight") onSwipe("like");
-      if (event.key === "ArrowLeft") onSwipe("nope");
+      if (event.key === "ArrowRight") commit("like");
+      if (event.key === "ArrowLeft") commit("nope");
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [disabled, onSwipe]);
+  }, [inactive, commit]);
 
   function onPointerDown(event: PointerEvent<HTMLElement>) {
-    if (disabled) return;
+    if (inactive) return;
     startX.current = event.clientX;
     setDragging(true);
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -42,15 +85,18 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
     if (!dragging) return;
     const distance = event.clientX - startX.current;
     setDragging(false);
-    setOffset(0);
-    if (distance >= SWIPE_THRESHOLD) onSwipe("like");
-    else if (distance <= -SWIPE_THRESHOLD) onSwipe("nope");
+    if (distance >= SWIPE_THRESHOLD) commit("like");
+    else if (distance <= -SWIPE_THRESHOLD) commit("nope");
+    else setOffset(0);
   }
 
   function onPointerCancel() {
     setDragging(false);
     setOffset(0);
   }
+
+  const stampDirection: Direction | null = committed ?? (offset > 0 ? "like" : offset < 0 ? "nope" : null);
+  const stampOpacity = committed ? 1 : Math.min(Math.abs(offset) / SWIPE_THRESHOLD, 1);
 
   return (
     <>
@@ -63,13 +109,18 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
         onPointerCancel={onPointerCancel}
       >
         <img src={meme.imageUrl} alt={meme.caption} draggable={false} />
+        {stampDirection && (
+          <span className={`stamp stamp-${stampDirection}`} style={{ opacity: stampOpacity }} aria-hidden="true">
+            {STAMP_LABELS[stampDirection]}
+          </span>
+        )}
         <figcaption>{meme.caption}</figcaption>
       </figure>
       <div className="actions">
-        <button type="button" className="nope" disabled={disabled} onClick={() => onSwipe("nope")}>
+        <button type="button" className="nope" disabled={inactive} onClick={() => commit("nope")}>
           Nope
         </button>
-        <button type="button" className="like" disabled={disabled} onClick={() => onSwipe("like")}>
+        <button type="button" className="like" disabled={inactive} onClick={() => commit("like")}>
           Like
         </button>
       </div>
