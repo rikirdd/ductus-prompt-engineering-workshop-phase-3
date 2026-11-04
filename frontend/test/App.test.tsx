@@ -11,6 +11,25 @@ const ok = (body: unknown) => ({ ok: true, json: async () => body });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("App", () => {
+  it("shows the love percentage of the meme returned by the backend", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(ok({ meme: { ...first, stats: { likes: 87, total: 100, percentage: 87 } } })),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByRole("img", { name: "87% of people loved this" })).toBeInTheDocument();
+  });
+
+  it("shows a NEW heart on a meme nobody has swiped yet", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: { ...first, stats: { likes: 0, total: 0, percentage: null } } })));
+
+    render(<App />);
+
+    expect(await screen.findByRole("img", { name: "New meme: nobody has judged it yet" })).toHaveTextContent("NEW");
+  });
+
   it("shows the meme returned by the backend", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
 

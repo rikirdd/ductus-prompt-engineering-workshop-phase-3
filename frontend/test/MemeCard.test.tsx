@@ -28,6 +28,18 @@ afterEach(() => {
 });
 
 describe("MemeCard", () => {
+  it("shows how much people loved the meme when stats are given", () => {
+    render(<MemeCard meme={{ ...meme, stats: { likes: 2, total: 3, percentage: 67 } }} onSwipe={vi.fn()} />);
+
+    expect(screen.getByRole("img", { name: "67% of people loved this" })).toHaveTextContent("67%");
+  });
+
+  it("shows no love heart without stats", () => {
+    setup();
+
+    expect(screen.queryByRole("img", { name: /loved this|judged/ })).not.toBeInTheDocument();
+  });
+
   it("shows the meme image with the caption as alt text", () => {
     setup();
 

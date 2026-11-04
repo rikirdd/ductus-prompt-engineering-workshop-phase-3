@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchLikes, fetchNextMeme, resetSwipes, sendSwipe, type Direction, type Meme } from "./api";
+import { fetchLikes, fetchNextMeme, resetSwipes, sendSwipe, type Direction, type Meme, type MemeWithStats } from "./api";
 import { Confetti } from "./Confetti";
 import { EmptyState } from "./EmptyState";
 import { Fireworks } from "./Fireworks";
@@ -19,7 +19,7 @@ interface Celebration {
 
 export function App() {
   const [view, setView] = useState<View>("swipe");
-  const [meme, setMeme] = useState<Meme | null>(null);
+  const [meme, setMeme] = useState<MemeWithStats | null>(null);
   const [likes, setLikes] = useState<Meme[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);

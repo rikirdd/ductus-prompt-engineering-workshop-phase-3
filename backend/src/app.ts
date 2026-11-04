@@ -32,7 +32,7 @@ export function createApp(swipeService: SwipeService, options: AppOptions = {}) 
 
   app.use(IMAGE_PATH, express.static(assetsDir));
 
-  // 200 with { meme }. When the user has swiped every meme, meme is null.
+  // 200 with { meme }, including the meme's stats across all users. When the user has swiped every meme, meme is null.
   app.get("/api/memes/next", (req, res) => {
     const userId = requireUserId(req, res);
     if (!userId) return;

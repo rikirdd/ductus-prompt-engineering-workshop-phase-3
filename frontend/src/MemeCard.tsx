@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
-import type { Direction, Meme } from "./api";
+import type { Direction, Meme, MemeStats } from "./api";
+import { LoveHeart } from "./LoveHeart";
 import { prefersReducedMotion } from "./motion";
 
 /** Horizontal drag distance (in px) a release must pass to count as a swipe. */
@@ -15,7 +16,8 @@ const FLY_DISTANCE = 600;
 const FLY_ROTATION = 30;
 
 interface MemeCardProps {
-  meme: Meme;
+  /** The stats are optional, so the card also works for a meme without them. */
+  meme: Meme & { stats?: MemeStats };
   /**
    * Called once the stamp has shown. If it returns a promise, the card is ready again when it settles,
    * so a failed swipe can be retried; a successful swipe normally replaces the card instead.
@@ -121,7 +123,10 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
       >
-        <img src={meme.imageUrl} alt={meme.caption} draggable={false} />
+        <div className="meme-image">
+          <img src={meme.imageUrl} alt={meme.caption} draggable={false} />
+          {meme.stats && <LoveHeart stats={meme.stats} />}
+        </div>
         {stampDirection && (
           <span className={`stamp stamp-${stampDirection}`} style={{ opacity: stampOpacity }} aria-hidden="true">
             {STAMP_LABELS[stampDirection]}

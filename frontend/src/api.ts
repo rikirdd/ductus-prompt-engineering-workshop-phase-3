@@ -6,6 +6,19 @@ export interface Meme {
   imageUrl: string;
 }
 
+/** How much people love a meme, across all users. */
+export interface MemeStats {
+  likes: number;
+  total: number;
+  /** Whole-number share of likes, or null while too few people have swiped it. */
+  percentage: number | null;
+}
+
+/** The meme on the swipe card, with its stats. */
+export interface MemeWithStats extends Meme {
+  stats: MemeStats;
+}
+
 export type Direction = "like" | "nope";
 
 export interface SwipeResult {
@@ -25,8 +38,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 /** Resolves to null when the user has swiped every meme. */
-export async function fetchNextMeme(): Promise<Meme | null> {
-  const { meme } = await request<{ meme: Meme | null }>("/api/memes/next");
+export async function fetchNextMeme(): Promise<MemeWithStats | null> {
+  const { meme } = await request<{ meme: MemeWithStats | null }>("/api/memes/next");
   return meme;
 }
 

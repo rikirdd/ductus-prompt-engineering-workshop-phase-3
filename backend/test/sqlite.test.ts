@@ -48,6 +48,18 @@ describe("sqlite swipe repository", () => {
     expect(repo.listByUser("u2")).toEqual([{ memeId: "a", direction: "nope" }]);
   });
 
+  it("counts likes and swipes for a meme across users", () => {
+    const repo = createSqliteSwipeRepository(":memory:");
+    expect(repo.countByMeme("a")).toEqual({ likes: 0, total: 0 });
+
+    repo.add("u1", { memeId: "a", direction: "like" });
+    repo.add("u2", { memeId: "a", direction: "nope" });
+    repo.add("u3", { memeId: "a", direction: "like" });
+    repo.add("u1", { memeId: "b", direction: "like" });
+
+    expect(repo.countByMeme("a")).toEqual({ likes: 2, total: 3 });
+  });
+
   it("keeps likes after the repository is reopened (a restart)", () => {
     const path = tempDbPath();
     const catalog = createTestCatalog([

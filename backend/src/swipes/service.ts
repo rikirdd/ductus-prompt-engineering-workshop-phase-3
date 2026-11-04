@@ -1,6 +1,22 @@
 import type { Meme, MemeCatalog } from "../memes/catalog.js";
 import type { Direction, Swipe, SwipeRepository } from "./repository.js";
 
+/** Fewer swipes than this give no percentage. Raise it to hide early, noisy numbers. */
+export const MIN_SWIPES_FOR_PERCENTAGE = 1;
+
+/** How much people love a meme, across all users. */
+export interface MemeStats {
+  likes: number;
+  total: number;
+  /** Whole-number share of likes, or null while there are fewer than MIN_SWIPES_FOR_PERCENTAGE swipes. */
+  percentage: number | null;
+}
+
+/** A meme with its stats, as served to the swipe card. */
+export interface MemeWithStats extends Meme {
+  stats: MemeStats;
+}
+
 export class UnknownMemeError extends Error {
   constructor(memeId: string) {
     super(`Unknown meme id: ${memeId}`);
@@ -8,8 +24,10 @@ export class UnknownMemeError extends Error {
 }
 
 export interface SwipeService {
-  /** The next meme the user has not swiped yet, or null when all memes have been swiped. */
-  getNextMeme(userId: string): Meme | null;
+  /** The next meme the user has not swiped yet, with its stats, or null when all memes have been swiped. */
+  getNextMeme(userId: string): MemeWithStats | null;
+  /** Likes, total swipes and like percentage for one meme across all users. */
+  getMemeStats(memeId: string): MemeStats;
   /**
    * Records a swipe. Swiping the same meme again is idempotent: the first swipe is kept
    * and returned. Throws UnknownMemeError if the meme does not exist.
@@ -24,11 +42,20 @@ export interface SwipeService {
 }
 
 export function createSwipeService(catalog: MemeCatalog, repository: SwipeRepository): SwipeService {
+  function getMemeStats(memeId: string): MemeStats {
+    const { likes, total } = repository.countByMeme(memeId);
+    const percentage = total >= MIN_SWIPES_FOR_PERCENTAGE ? Math.round((likes / total) * 100) : null;
+    return { likes, total, percentage };
+  }
+
   return {
     getNextMeme(userId) {
       const seen = new Set(repository.listByUser(userId).map((swipe) => swipe.memeId));
-      return catalog.list().find((meme) => !seen.has(meme.id)) ?? null;
+      const meme = catalog.list().find((candidate) => !seen.has(candidate.id));
+      return meme ? { ...meme, stats: getMemeStats(meme.id) } : null;
     },
+
+    getMemeStats,
 
     recordSwipe(userId, memeId, direction) {
       if (!catalog.getById(memeId)) throw new UnknownMemeError(memeId);

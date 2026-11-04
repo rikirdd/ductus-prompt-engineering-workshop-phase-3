@@ -6,6 +6,7 @@
 
 ### Added
 
+- Love percentage on every meme: `GET /api/memes/next` returns the meme with `stats` (`likes`, `total` and `percentage` across all users), and the card shows a big red heart with the percentage inside that grows with the number (`LoveHeart`). The percentage shows from the first swipe (`MIN_SWIPES_FOR_PERCENTAGE` = 1); a meme nobody has swiped yet gets a smaller, softer heart that says NEW instead of a number. Adds `getMemeStats` to the swipe service and `countByMeme` to `SwipeRepository` (in-memory and SQLite) (#13)
 - Swipe milestone: the 30th swipe launches CSS fireworks with a synthesized whistle-and-bang sound (Web Audio API, no audio files or new dependency) and "🎆 30 memes swiped! You legend.", exactly once per swipe history. Reduced-motion users get the message and sound without the animation; without Web Audio it stays silent (`SWIPE_MILESTONE` in `frontend/src/milestone.ts`; the ticket asked for 100, lowered to 30 so it is reachable with the 30 seed memes). It outranks a streak on the same swipe and counts stored swipes, so it survives reloads and restarts (#19)
 - `POST /api/swipes` also returns the user's total `swipeCount`, from `countSwipes` on the swipe service (#19)
 

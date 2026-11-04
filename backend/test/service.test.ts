@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
-import { createSwipeService, UnknownMemeError } from "../src/swipes/service.js";
+import { createSwipeService, MIN_SWIPES_FOR_PERCENTAGE, UnknownMemeError } from "../src/swipes/service.js";
 import { createTestCatalog } from "./helpers.js";
 
 function setup() {
@@ -56,6 +56,52 @@ describe("swipe service", () => {
     service.resetSwipes("u1");
 
     expect(service.countSwipes("u1")).toBe(0);
+  });
+
+  describe("meme stats", () => {
+    it("are empty for a meme nobody has swiped", () => {
+      expect(setup().getMemeStats("a")).toEqual({ likes: 0, total: 0, percentage: null });
+    });
+
+    it("count likes and swipes across all users, as a rounded percentage", () => {
+      const service = setup();
+      service.recordSwipe("u1", "a", "like");
+      service.recordSwipe("u2", "a", "like");
+      service.recordSwipe("u3", "a", "nope");
+      service.recordSwipe("u3", "b", "like");
+
+      expect(service.getMemeStats("a")).toEqual({ likes: 2, total: 3, percentage: 67 });
+    });
+
+    it("give a percentage from the minimum number of swipes, and none below it", () => {
+      const service = setup();
+      for (let i = 1; i < MIN_SWIPES_FOR_PERCENTAGE; i++) service.recordSwipe(`u${i}`, "a", "like");
+      expect(service.getMemeStats("a").percentage).toBeNull();
+
+      service.recordSwipe("last", "a", "like");
+
+      expect(service.getMemeStats("a")).toEqual({ likes: MIN_SWIPES_FOR_PERCENTAGE, total: MIN_SWIPES_FOR_PERCENTAGE, percentage: 100 });
+    });
+
+    it("count a repeat swipe once and drop a user's swipes after a reset", () => {
+      const service = setup();
+      service.recordSwipe("u1", "a", "like");
+      service.recordSwipe("u1", "a", "nope");
+      service.recordSwipe("u2", "a", "nope");
+      service.recordSwipe("u3", "a", "nope");
+      expect(service.getMemeStats("a")).toEqual({ likes: 1, total: 3, percentage: 33 });
+
+      service.resetSwipes("u1");
+
+      expect(service.getMemeStats("a")).toEqual({ likes: 0, total: 2, percentage: 0 });
+    });
+
+    it("come with the next meme", () => {
+      const service = setup();
+      service.recordSwipe("u2", "a", "like");
+
+      expect(service.getNextMeme("u1")).toMatchObject({ id: "a", stats: { likes: 1, total: 1, percentage: 100 } });
+    });
   });
 
   it("keeps swipe history separate per user", () => {

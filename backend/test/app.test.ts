@@ -18,7 +18,7 @@ const next = (app: ReturnType<typeof setup>, userId: string) =>
   request(app).get("/api/memes/next").set("X-User-Id", userId);
 
 describe("GET /api/memes/next", () => {
-  it("returns a meme with an id, caption and image url", async () => {
+  it("returns a meme with an id, caption, image url and stats", async () => {
     const res = await next(setup(), "u1");
 
     expect(res.status).toBe(200);
@@ -26,7 +26,21 @@ describe("GET /api/memes/next", () => {
       id: expect.any(String),
       caption: expect.any(String),
       imageUrl: expect.stringMatching(/\.svg$/),
+      stats: { likes: 0, total: 0, percentage: null },
     });
+  });
+
+  it("includes how other users swiped the meme", async () => {
+    const app = setup();
+    const { meme } = (await next(app, "u1")).body;
+    for (const [user, direction] of [["u2", "like"], ["u3", "like"], ["u4", "nope"]]) {
+      await swipe(app, user, { memeId: meme.id, direction });
+    }
+
+    const res = await next(app, "u1");
+
+    expect(res.body.meme.id).toBe(meme.id);
+    expect(res.body.meme.stats).toEqual({ likes: 2, total: 3, percentage: 67 });
   });
 
   it("serves the image the meme points to", async () => {
@@ -239,8 +253,9 @@ describe("GET /api/likes", () => {
 
     const res = await likes(app, "u1");
 
+    const { stats: _stats, ...secondWithoutStats } = second;
     expect(res.status).toBe(200);
-    expect(res.body.memes).toEqual([second]);
+    expect(res.body.memes).toEqual([secondWithoutStats]);
   });
 
   it("returns likes in the same order every time", async () => {
