@@ -26,7 +26,7 @@ When a new vision arrives:
 | Rank | Epic | Vision | Progress |
 | --- | --- | --- | --- |
 | 1 | [#27](https://github.com/rikirdd/ductus-prompt-engineering-workshop-phase-3/issues/27) Who Am I? 🪪 | 002 | 4/5 built on branch `feature/27-who-am-i` (not merged yet), #36 waits for the Hot or Not features |
-| 2 | [#28](https://github.com/rikirdd/ductus-prompt-engineering-workshop-phase-3/issues/28) Find My Meme People ❤️ | 002 | 0/4 |
+| 2 | [#28](https://github.com/rikirdd/ductus-prompt-engineering-workshop-phase-3/issues/28) Find My Meme People ❤️ | 002 | 4/4 built on branch `feature/28-find-my-meme-people` (not merged yet) |
 | 3 | [#29](https://github.com/rikirdd/ductus-prompt-engineering-workshop-phase-3/issues/29) It's a Match! 🎉 | 002 | 0/3 |
 | 4 | [#30](https://github.com/rikirdd/ductus-prompt-engineering-workshop-phase-3/issues/30) Live! 🔴 | 002 | 0/3 |
 | 5 | [#31](https://github.com/rikirdd/ductus-prompt-engineering-workshop-phase-3/issues/31) Bring a Friend 🤝 | 002 | 0/3 |
@@ -65,12 +65,12 @@ A person is the same person on every device, with no passwords, and nobody loses
 
 ### Find My Meme People ❤️ (#28)
 
-| Ticket | Title | Type | Blocked by |
-| --- | --- | --- | --- |
-| #37 | Compatibility score between two people | afk | #32 |
-| #38 | Demo people so there is always someone to match with | afk | #32 |
-| #39 | People like you: ranked list of people | afk | #37, #38 |
-| #40 | See the memes we both loved | afk | #39 |
+| Ticket | Title | Type | Blocked by | State |
+| --- | --- | --- | --- | --- |
+| #37 | Compatibility score between two people | afk | #32 | Built on `feature/28-find-my-meme-people` |
+| #38 | Demo people so there is always someone to match with | afk | #32 | Built on `feature/28-find-my-meme-people` |
+| #39 | People like you: ranked list of people | afk | #37, #38 | Built on `feature/28-find-my-meme-people` |
+| #40 | See the memes we both loved | afk | #39 | Built on `feature/28-find-my-meme-people` |
 
 ### It's a Match! 🎉 (#29)
 
@@ -152,6 +152,6 @@ Note: all five new bets change a lot of code quickly. #20 is cheap and protects 
 
 ## Next up
 
-1. Review and merge `feature/27-who-am-i` (#32 to #35), which every other vision 002 ticket depends on.
+1. Review and merge `feature/28-find-my-meme-people` (#37 to #40); profiles (#32 to #35) are already on `main`.
 2. Merge the #9 work into `main`; it will need a small merge fix because `createApp` gained a `profileService` argument.
 3. Confirm the reading of the match rule in #41 with the PO before building it.

@@ -7,6 +7,7 @@ import { createApp } from "../src/app.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { seedMemeRepository } from "../src/memes/seed.js";
 import { createSqliteMemeRepository } from "../src/memes/sqlite.js";
+import { createPeopleService } from "../src/people/service.js";
 import { createInMemoryProfileRepository, type ProfileRepository } from "../src/profiles/repository.js";
 import {
   createProfileService,
@@ -15,10 +16,9 @@ import {
   UnknownNicknameError,
 } from "../src/profiles/service.js";
 import { createSqliteProfileRepository } from "../src/profiles/sqlite.js";
-import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
 import { createSwipeService } from "../src/swipes/service.js";
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite.js";
-import { createTestCatalog } from "./helpers.js";
+import { createTestBackend } from "./helpers.js";
 
 const repositories: [string, () => ProfileRepository][] = [
   ["in-memory", createInMemoryProfileRepository],
@@ -101,11 +101,7 @@ describe.each(repositories)("profile service on the %s repository", (_name, crea
 });
 
 describe("profile endpoints", () => {
-  const setup = () =>
-    createApp(
-      createSwipeService(createTestCatalog(), createInMemorySwipeRepository()),
-      createProfileService(createInMemoryProfileRepository()),
-    );
+  const setup = () => createTestBackend().app;
   const put = (app: ReturnType<typeof setup>, userId: string, body: object) =>
     request(app).put("/api/profile").set("X-User-Id", userId).send(body);
 
@@ -192,8 +188,13 @@ describe("profiles and swipes in one database file", () => {
     const memes = seedMemeRepository(createSqliteMemeRepository(databasePath));
     const swipes = createSqliteSwipeRepository(databasePath);
     const profiles = createSqliteProfileRepository(databasePath);
+    const catalog = createMemeCatalog(memes);
     return {
-      app: createApp(createSwipeService(createMemeCatalog(memes), swipes), createProfileService(profiles)),
+      app: createApp(
+        createSwipeService(catalog, swipes),
+        createProfileService(profiles),
+        createPeopleService(profiles, swipes, catalog),
+      ),
       close: () => {
         memes.close();
         swipes.close();

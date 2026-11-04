@@ -44,6 +44,8 @@ All endpoints are under `/api` and need an `X-User-Id` header (the frontend crea
 | `GET /api/profile`      | `200 { "profile": { "nickname", "emoji" } }`. A user without a profile gets a generated one ("Meme Fan 4821")  |
 | `PUT /api/profile`      | Body `{ "nickname": "...", "emoji": "..." }` (nickname 1 to 20 characters, one emoji). `200` with the profile   |
 | `POST /api/login`       | Body `{ "nickname": "..." }`. `200 { "userId", "profile" }`; needs no `X-User-Id` header and no password        |
+| `GET /api/people`       | `200 { "people": [...] }`: everyone else with `nickname`, `emoji`, `demo`, `compatibility` (percent, or `null` without shared swipes) and `sharedSwipes`, best match first |
+| `GET /api/people/:nickname/shared-memes` | `200 { "memes": [...] }` with the memes both you and that person liked, in catalog order. `404` for an unknown nickname |
 
 Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id or an unknown nickname at login, `409` when a nickname is already taken (ignoring case). Swiping the same meme twice is idempotent: the first swipe is kept.
 
@@ -56,3 +58,11 @@ Everyone has a profile with a unique nickname (ignoring case) and an emoji, stor
 To use your memes and likes on another device, open the Profile tab and sign in with your nickname.
 
 **Known limitation:** signing in needs only the nickname, with no password, so anyone who knows a nickname can sign in as that person. The product owner accepted this for now. Do not use it for anything that must stay private.
+
+## People and compatibility
+
+The People tab lists everyone else, best match first, as "You and Sara are 91% compatible!". Tap a person to see the memes you both loved.
+
+- **Compatibility** is the percentage of memes you both swiped where you made the same choice (both liked or both noped). It shows from the first shared swipe, so early scores are noisy. With no shared swipes there is no score.
+- **Everyone can see everyone**: the list and the shared likes are visible to all users (product owner decision). User ids are never sent, only nicknames.
+- **Demo people**: five seeded people (`backend/src/people/demo.ts`, nickname ending in "(demo)") are added on every start without duplicates, so even the only user has someone to compare with. They are marked as demo in the API and in the UI.
