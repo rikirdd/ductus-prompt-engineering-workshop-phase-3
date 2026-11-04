@@ -5,6 +5,8 @@ import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
+import { seedMemeRepository } from "../src/memes/seed.js";
+import { createSqliteMemeRepository } from "../src/memes/sqlite.js";
 import { createSwipeService } from "../src/swipes/service.js";
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite.js";
 
@@ -15,9 +17,16 @@ afterEach(() => {
 
 /** Builds the app on a database file, like starting the backend. Call close() to stop it. */
 function startBackend(databasePath: string) {
-  const repository = createSqliteSwipeRepository(databasePath);
-  const app = createApp(createSwipeService(createMemeCatalog(), repository));
-  return { app, close: () => repository.close() };
+  const memes = seedMemeRepository(createSqliteMemeRepository(databasePath));
+  const swipes = createSqliteSwipeRepository(databasePath);
+  const app = createApp(createSwipeService(createMemeCatalog(memes), swipes));
+  return {
+    app,
+    close: () => {
+      memes.close();
+      swipes.close();
+    },
+  };
 }
 
 describe("persistence across a backend restart", () => {

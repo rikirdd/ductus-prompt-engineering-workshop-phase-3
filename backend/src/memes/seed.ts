@@ -1,3 +1,6 @@
+import { IMAGE_PATH } from "./catalog.js";
+import type { MemeRepository } from "./repository.js";
+
 export interface SeedMeme {
   id: string;
   /** Caption shown on the card and used as accessible text. */
@@ -38,3 +41,14 @@ export const seedMemes: SeedMeme[] = [
   { id: "cache", caption: "Have you tried clearing the cache?", file: "cache.svg" },
   { id: "backup", caption: "Nobody tests backups until the day they need one", file: "backup.svg" },
 ];
+
+/**
+ * Adds the seed memes that the repository does not have yet, so it is safe to call on every start.
+ * Returns the repository for convenience.
+ */
+export function seedMemeRepository<T extends MemeRepository>(repository: T, seeds: SeedMeme[] = seedMemes): T {
+  for (const seed of seeds) {
+    repository.add({ id: seed.id, caption: seed.caption, imageUrl: `${IMAGE_PATH}/${seed.file}` });
+  }
+  return repository;
+}

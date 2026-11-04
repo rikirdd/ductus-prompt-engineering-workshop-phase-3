@@ -2,9 +2,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite.js";
 import { createSwipeService } from "../src/swipes/service.js";
+import { createTestCatalog } from "./helpers.js";
 
 const dirs: string[] = [];
 function tempDbPath() {
@@ -50,7 +50,7 @@ describe("sqlite swipe repository", () => {
 
   it("keeps likes after the repository is reopened (a restart)", () => {
     const path = tempDbPath();
-    const catalog = createMemeCatalog([
+    const catalog = createTestCatalog([
       { id: "a", caption: "A", file: "a.svg" },
       { id: "b", caption: "B", file: "b.svg" },
     ]);
