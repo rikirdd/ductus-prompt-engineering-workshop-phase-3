@@ -6,6 +6,10 @@
 
 ### Added
 
+- Tests for the anonymous user id (created once, kept across reloads, fallback when localStorage is blocked) and an end-to-end test that likes survive a backend restart (#7)
+
+- Swipes are persisted in a SQLite database (built-in `node:sqlite`, no new dependency) via `createSqliteSwipeRepository`, so likes survive backend restarts; configurable with `DATABASE_PATH`, stored on a Docker volume in the container (#6)
+
 - 20 more memes (SVG assets and seed entries), bringing the catalog to 30
 
 - Agent guidance in `CLAUDE.md`: architecture, folder structure, commands, coding conventions, extension points (`SwipeRepository`, service vs. HTTP layer) and the rule that `CHANGELOG.md` is updated with every change (#8)

@@ -17,7 +17,7 @@ How it works:
 - One container, one process, one port (3000). There is no CORS or proxy configuration.
 - `deploy/Dockerfile` is multi-stage (`node:22-alpine`, matching `.nvmrc`). The build stage installs all workspaces and runs `npm run build`. The final stage installs only the backend's production dependencies and copies in the built backend, the meme assets and the built frontend.
 - The backend serves the built frontend when the `STATIC_DIR` environment variable is set (the image sets it to `/app/frontend/dist`). Unknown non-API paths fall back to `index.html`; `/api` paths are never shadowed.
-- Swipes are stored in memory, so they are lost when the container restarts.
+- Swipes are stored in a SQLite file at `/data/meme-tinder.db` (set by `DATABASE_PATH`) on the named volume `meme-data`, so they survive container restarts and rebuilds. `docker compose -f deploy/docker-compose.yml down -v` deletes the volume and with it all swipes.
 - To use another host port, change `"3000:3000"` in `deploy/docker-compose.yml`, for example to `"8080:3000"`.
 
 ## Local
@@ -39,3 +39,5 @@ STATIC_DIR=frontend/dist npm start -w backend
 ```
 
 Then open http://localhost:3000.
+
+Locally, swipes are stored in `backend/data/meme-tinder.db` (relative to where the backend starts) unless `DATABASE_PATH` is set. Delete that file to start from scratch.
