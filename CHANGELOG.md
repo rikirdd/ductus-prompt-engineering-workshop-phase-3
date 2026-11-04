@@ -6,15 +6,15 @@
 
 ### Added
 
-- Memes are read from a `MemeRepository` (in-memory and SQLite implementations) instead of a fixed list. The 30 seed memes are added to the database on first start and never duplicated on later starts (#8)
+- Card transitions: a swiped card flies off in its direction and the next card springs in, for buttons, arrow keys and drags; with `prefers-reduced-motion` the cards only fade (#17)
+- Streak confetti: five likes in a row (and every multiple of five) fire CSS confetti with a "5 likes in a row!" message, a nope resets the streak, and reduced-motion users get only the message; no new dependency (#18)
+- LIKE and NOPE stamps on the swipe card: the stamp fades in with the drag distance, and buttons, arrow keys and a released drag show the full stamp for 300 ms before the swipe is sent (#16)
 
+- Memes are read from a `MemeRepository` (in-memory and SQLite implementations) instead of a fixed list. The 30 seed memes are added to the database on first start and never duplicated on later starts (#8)
 
 - Tests for the anonymous user id (created once, kept across reloads, fallback when localStorage is blocked) and an end-to-end test that likes survive a backend restart (#7)
 
 - Swipes are persisted in a SQLite database (built-in `node:sqlite`, no new dependency) via `createSqliteSwipeRepository`, so likes survive backend restarts; configurable with `DATABASE_PATH`, stored on a Docker volume in the container (#6)
-
-- LIKE and NOPE stamps on the swipe card: the stamp fades in with the drag distance, and buttons, arrow keys and a released drag show the full stamp for 300 ms before the swipe is sent (#16)
-
 
 - 20 more memes (SVG assets and seed entries), bringing the catalog to 30
 

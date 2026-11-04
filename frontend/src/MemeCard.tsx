@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import type { Direction, Meme } from "./api";
+import { prefersReducedMotion } from "./motion";
 
 /** Horizontal drag distance (in px) a release must pass to count as a swipe. */
 export const SWIPE_THRESHOLD = 100;
@@ -8,6 +9,10 @@ export const SWIPE_THRESHOLD = 100;
 export const STAMP_DURATION_MS = 300;
 
 const STAMP_LABELS: Record<Direction, string> = { like: "LIKE", nope: "NOPE" };
+
+/** How far (in px) and how much (in degrees) a swiped card flies off. */
+const FLY_DISTANCE = 600;
+const FLY_ROTATION = 30;
 
 interface MemeCardProps {
   meme: Meme;
@@ -29,6 +34,7 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
   const committing = useRef(false);
   const mounted = useRef(true);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [reducedMotion] = useState(prefersReducedMotion);
   const inactive = disabled || committed !== null;
 
   useEffect(() => {
@@ -97,12 +103,19 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
 
   const stampDirection: Direction | null = committed ?? (offset > 0 ? "like" : offset < 0 ? "nope" : null);
   const stampOpacity = committed ? 1 : Math.min(Math.abs(offset) / SWIPE_THRESHOLD, 1);
+  const sign = committed === "like" ? 1 : -1;
+  // A committed card flies off in its direction; with reduced motion it fades out where it is.
+  const transform =
+    committed && !reducedMotion
+      ? `translateX(${sign * FLY_DISTANCE}px) rotate(${sign * FLY_ROTATION}deg)`
+      : `translateX(${offset}px) rotate(${offset / 20}deg)`;
+  const className = ["meme-card", dragging && "dragging", committed && "leaving"].filter(Boolean).join(" ");
 
   return (
     <>
       <figure
-        className={`meme-card${dragging ? " dragging" : ""}`}
-        style={{ transform: `translateX(${offset}px) rotate(${offset / 20}deg)` }}
+        className={className}
+        style={{ transform, opacity: committed ? 0 : undefined }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 
@@ -152,6 +152,42 @@ describe("App", () => {
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Like" })).toBeEnabled();
     expect(screen.queryByText("LIKE")).not.toBeInTheDocument();
+  });
+
+  describe("streak confetti", () => {
+    /** Answers the first meme load, then one swipe and one next-meme load per swipe. */
+    function stubSwipes(count: number) {
+      const fetchMock = vi.fn().mockResolvedValueOnce(ok({ meme: first }));
+      for (let index = 0; index < count; index++) {
+        fetchMock.mockResolvedValueOnce(ok({})).mockResolvedValueOnce(ok({ meme: index % 2 ? first : second }));
+      }
+      vi.stubGlobal("fetch", fetchMock);
+    }
+
+    async function swipe(label: "Like" | "Nope") {
+      fireEvent.click(await screen.findByRole("button", { name: label }));
+      await waitFor(() => expect(screen.getByRole("button", { name: label })).toBeEnabled());
+    }
+
+    it("celebrates five likes in a row", async () => {
+      stubSwipes(5);
+      render(<App />);
+
+      for (let index = 0; index < 4; index++) await swipe("Like");
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      await swipe("Like");
+
+      expect(screen.getByRole("status")).toHaveTextContent("5 likes in a row!");
+    });
+
+    it("does not celebrate when a nope breaks the streak", async () => {
+      stubSwipes(5);
+      render(<App />);
+
+      for (const label of ["Like", "Like", "Like", "Nope", "Like"] as const) await swipe(label);
+
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
   });
 
   describe("likes view", () => {

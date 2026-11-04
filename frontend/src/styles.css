@@ -24,6 +24,34 @@ main {
   user-select: none;
   cursor: grab;
   transition: transform 0.2s ease;
+  /* The next card springs in. `scale` composes with the inline drag `transform`. */
+  animation: card-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.meme-card.leaving {
+  transition:
+    transform 0.3s ease-in,
+    opacity 0.3s ease-in;
+}
+
+@keyframes card-enter {
+  from {
+    scale: 0.8;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .stamp {
@@ -131,4 +159,58 @@ nav button[aria-current="page"] {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.streak-message {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  background: #222;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+  animation: fade-in 0.2s ease-out;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -1rem;
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(110vh) rotate(720deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meme-card {
+    animation-name: fade-in;
+  }
+
+  .meme-card.leaving {
+    transition: opacity 0.3s ease-in;
+  }
+
+  .confetti-piece {
+    display: none;
+  }
 }

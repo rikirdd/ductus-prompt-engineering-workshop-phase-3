@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchLikes, fetchNextMeme, resetSwipes, sendSwipe, type Direction, type Meme } from "./api";
+import { Confetti } from "./Confetti";
 import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
+import { isStreakMilestone, nextStreak } from "./streak";
 
 type View = "swipe" | "likes";
 
@@ -13,6 +15,9 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
+  /** The latest streak milestone. A new id remounts the confetti so it fires again. */
+  const [celebration, setCelebration] = useState<{ id: number; streak: number } | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -51,6 +56,11 @@ export function App() {
     setSwiping(true);
     try {
       await sendSwipe(meme.id, direction);
+      const streakAfter = nextStreak(streak, direction);
+      setStreak(streakAfter);
+      if (isStreakMilestone(streakAfter)) {
+        setCelebration((previous) => ({ id: (previous?.id ?? 0) + 1, streak: streakAfter }));
+      }
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -63,6 +73,7 @@ export function App() {
     setError(null);
     try {
       await resetSwipes();
+      setStreak(0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
       return;
@@ -81,6 +92,7 @@ export function App() {
           Likes
         </button>
       </nav>
+      {celebration && <Confetti key={celebration.id} streak={celebration.streak} />}
       {error && <p role="alert">Something went wrong: {error}. Is the backend running?</p>}
       {view === "likes" && !error && (likes ? <LikesView memes={likes} /> : <p>Loading…</p>)}
       {view === "swipe" && loading && !error && <p>Loading…</p>}
