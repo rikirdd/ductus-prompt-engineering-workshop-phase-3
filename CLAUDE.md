@@ -14,15 +14,15 @@ Update [CHANGELOG.md](CHANGELOG.md) with every change, under `## Unreleased` in 
 
 An npm workspaces monorepo with TypeScript in both workspaces.
 
-- `backend/`: Express 5 API (port 3000). Storage is in memory.
+- `backend/`: Express 5 API (port 3000). Swipes are stored in SQLite (`DATABASE_PATH`).
 - `frontend/`: React 19 + Vite (port 5173). The dev server proxies `/api` to the backend. In production the backend serves the built frontend (`STATIC_DIR`), so there is one process on one port.
 
 Backend layers (keep them separate):
 
 - `backend/src/app.ts`: the thin HTTP layer. `createApp(swipeService, options)` validates input, reads the user id from the `X-User-Id` header and maps results and errors to status codes. No business logic.
 - `backend/src/swipes/service.ts`: the swipe service, which holds the business logic. It depends only on the meme catalog and a `SwipeRepository`, and is tested without HTTP.
-- `backend/src/swipes/repository.ts`: the `SwipeRepository` interface and its in-memory implementation. This is where a database plugs in: implement the interface and pass it to `createSwipeService` in `backend/src/index.ts`. Do not change the service for this.
-- `backend/src/memes/`: the meme catalog and seed data (`seed.ts`). Images are SVGs in `backend/assets/memes`.
+- `backend/src/swipes/repository.ts`: the `SwipeRepository` interface and its in-memory implementation (used in tests). `backend/src/swipes/sqlite.ts` is the SQLite implementation used by the app. To use another database, implement the interface and pass it to `createSwipeService` in `backend/src/index.ts`. Do not change the service for this.
+- `backend/src/memes/`: the meme catalog (`catalog.ts`, reads from a `MemeRepository` in `repository.ts`, SQLite implementation in `sqlite.ts`) and seed data (`seed.ts`, added to the repository on every start without duplicates). Images are SVGs in `backend/assets/memes`.
 - `backend/src/index.ts`: wires catalog, repository, service and app together.
 
 Frontend: `App.tsx` owns the state and the views, `MemeCard.tsx` handles swiping (buttons, arrow keys, pointer drag, no gesture library), `api.ts` is the only code that calls `fetch`, and `identity.ts` keeps the anonymous user id in localStorage.
