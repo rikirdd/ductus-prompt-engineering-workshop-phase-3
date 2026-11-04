@@ -6,6 +6,8 @@
 
 ### Added
 
+- Memes are read from a `MemeRepository` (in-memory and SQLite implementations) instead of a fixed list. The 30 seed memes are added to the database on first start and never duplicated on later starts (#8)
+
 
 - Tests for the anonymous user id (created once, kept across reloads, fallback when localStorage is blocked) and an end-to-end test that likes survive a backend restart (#7)
 

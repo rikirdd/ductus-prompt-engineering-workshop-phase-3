@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
 import { createSwipeService, UnknownMemeError } from "../src/swipes/service.js";
+import { createTestCatalog } from "./helpers.js";
 
 function setup() {
-  const catalog = createMemeCatalog([
+  const catalog = createTestCatalog([
     { id: "a", caption: "A", file: "a.svg" },
     { id: "b", caption: "B", file: "b.svg" },
   ]);
@@ -90,7 +90,7 @@ describe("swipe service", () => {
 
   describe("listLikedMemes", () => {
     function setupWithThree() {
-      const catalog = createMemeCatalog([
+      const catalog = createTestCatalog([
         { id: "a", caption: "A", file: "a.svg" },
         { id: "b", caption: "B", file: "b.svg" },
         { id: "c", caption: "C", file: "c.svg" },

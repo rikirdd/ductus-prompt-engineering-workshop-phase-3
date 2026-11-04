@@ -1,4 +1,4 @@
-import { seedMemes, type SeedMeme } from "./seed.js";
+import type { MemeRepository } from "./repository.js";
 
 export interface Meme {
   id: string;
@@ -13,14 +13,10 @@ export interface MemeCatalog {
   getById(id: string): Meme | undefined;
 }
 
-function toMeme(seed: SeedMeme): Meme {
-  return { id: seed.id, caption: seed.caption, imageUrl: `${IMAGE_PATH}/${seed.file}` };
-}
-
-export function createMemeCatalog(seeds: SeedMeme[] = seedMemes): MemeCatalog {
-  const memes = seeds.map(toMeme);
+/** The memes people can swipe, read from a repository. */
+export function createMemeCatalog(repository: MemeRepository): MemeCatalog {
   return {
-    list: () => [...memes],
-    getById: (id) => memes.find((meme) => meme.id === id),
+    list: () => repository.list(),
+    getById: (id) => repository.getById(id),
   };
 }
