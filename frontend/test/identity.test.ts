@@ -43,3 +43,32 @@ describe("getUserId", () => {
     expect(getUserId()).toBe(id);
   });
 });
+
+describe("setUserId", () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => vi.restoreAllMocks());
+
+  it("makes this device use another user id, also after a page reload", async () => {
+    const identity = await loadIdentity();
+    identity.getUserId();
+
+    identity.setUserId("laptop-id");
+
+    expect(identity.getUserId()).toBe("laptop-id");
+    expect((await loadIdentity()).getUserId()).toBe("laptop-id");
+  });
+
+  it("still switches user for this page load when localStorage is unavailable", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const { getUserId, setUserId } = await loadIdentity();
+
+    setUserId("laptop-id");
+
+    expect(getUserId()).toBe("laptop-id");
+  });
+});

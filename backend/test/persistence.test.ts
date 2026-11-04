@@ -7,6 +7,9 @@ import { createApp } from "../src/app.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { seedMemeRepository } from "../src/memes/seed.js";
 import { createSqliteMemeRepository } from "../src/memes/sqlite.js";
+import { createPeopleService } from "../src/people/service.js";
+import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
+import { createProfileService } from "../src/profiles/service.js";
 import { createSwipeService } from "../src/swipes/service.js";
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite.js";
 
@@ -19,7 +22,13 @@ afterEach(() => {
 function startBackend(databasePath: string) {
   const memes = seedMemeRepository(createSqliteMemeRepository(databasePath));
   const swipes = createSqliteSwipeRepository(databasePath);
-  const app = createApp(createSwipeService(createMemeCatalog(memes), swipes));
+  const catalog = createMemeCatalog(memes);
+  const profiles = createInMemoryProfileRepository();
+  const app = createApp(
+    createSwipeService(catalog, swipes),
+    createProfileService(profiles),
+    createPeopleService(profiles, swipes, catalog),
+  );
   return {
     app,
     close: () => {

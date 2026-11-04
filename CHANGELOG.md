@@ -7,12 +7,22 @@
 ### Added
 
 - Love percentage on every meme: `GET /api/memes/next` returns the meme with `stats` (`likes`, `total` and `percentage` across all users), and the card shows a big red heart with the percentage inside that grows with the number (`LoveHeart`). The percentage shows from the first swipe (`MIN_SWIPES_FOR_PERCENTAGE` = 1); a meme nobody has swiped yet gets a smaller, softer heart that says NEW instead of a number. Adds `getMemeStats` to the swipe service and `countByMeme` to `SwipeRepository` (in-memory and SQLite) (#13)
+- Compatibility score between two people: the share of memes both swiped where they made the same choice, shown from the first shared swipe and absent (not 0%) when nothing is shared; `createPeopleService` with `compatibility` (#37)
+- Demo people: five seeded profiles with believable, deterministic swipe histories and different tastes, added on every start without duplicates and marked as demo (`demo` in the API, "(demo person)" in the UI); `ProfileRepository` gains `list` and `saveDemo`, and existing SQLite databases get an `is_demo` column (#38)
+- People tab and `GET /api/people`: everyone else with their compatibility, best match first, people without shared swipes last; user ids are never exposed (#39)
+- Memes you both loved: tap a person on the People tab, backed by `GET /api/people/:nickname/shared-memes` (#40)
 - Swipe milestone: the 30th swipe launches CSS fireworks with a synthesized whistle-and-bang sound (Web Audio API, no audio files or new dependency) and "🎆 30 memes swiped! You legend.", exactly once per swipe history. Reduced-motion users get the message and sound without the animation; without Web Audio it stays silent (`SWIPE_MILESTONE` in `frontend/src/milestone.ts`; the ticket asked for 100, lowered to 30 so it is reachable with the 30 seed memes). It outranks a streak on the same swipe and counts stored swipes, so it survives reloads and restarts (#19)
 - `POST /api/swipes` also returns the user's total `swipeCount`, from `countSwipes` on the swipe service (#19)
+- Profiles: every user has a unique nickname (ignoring case) and an emoji, stored in SQLite via a `ProfileRepository` (in-memory and SQLite implementations); `GET /api/profile` and `PUT /api/profile`. A user without a profile, such as someone who swiped before profiles existed, gets a generated one on first contact and keeps all their swipes (#32, #33)
+- Sign in on a new device with only a username: `POST /api/login`, documented in the README as a known limitation because there is no password (#34)
+- Profile tab: edit nickname and emoji, and sign in with a username; the API's error text (for example "nickname is already taken") is shown in the UI (#35)
 
 - Card transitions: a swiped card flies off in its direction and the next card springs in, for buttons, arrow keys and drags; with `prefers-reduced-motion` the cards only fade (#17)
 - Streak confetti: five likes in a row (and every multiple of five) fire CSS confetti with a "5 likes in a row!" message, a nope resets the streak, and reduced-motion users get only the message; no new dependency (#18)
 - LIKE and NOPE stamps on the swipe card: the stamp fades in with the drag distance, and buttons, arrow keys and a released drag show the full stamp for 300 ms before the swipe is sent (#16)
+- `BACKLOG.md` tracking the epics and tickets in priority order: the five vision 002 epics (#27 to #31) and their tickets first, the unfinished vision 001 work parked below, the PO decisions, and a process for the next pivot
+
+- Post your own meme: `POST /api/memes` (caption plus a PNG or JPEG as base64, type detected from the file bytes, limits 140 characters and 5 MB) stores the image in `UPLOAD_DIR` and adds the meme to everyone's pile; new Post tab with an upload form (#9)
 
 - Memes are read from a `MemeRepository` (in-memory and SQLite implementations) instead of a fixed list. The 30 seed memes are added to the database on first start and never duplicated on later starts (#8)
 

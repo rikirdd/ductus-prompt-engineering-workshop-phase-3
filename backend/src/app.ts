@@ -2,6 +2,13 @@ import express, { type NextFunction, type Request, type Response } from "express
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { IMAGE_PATH } from "./memes/catalog.js";
+import { UnknownPersonError, type PeopleService } from "./people/service.js";
+import {
+  InvalidProfileError,
+  NicknameTakenError,
+  UnknownNicknameError,
+  type ProfileService,
+} from "./profiles/service.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
 import { UnknownMemeError, type SwipeService } from "./swipes/service.js";
 
@@ -26,11 +33,81 @@ export interface AppOptions {
   staticDir?: string;
 }
 
-export function createApp(swipeService: SwipeService, options: AppOptions = {}) {
+export function createApp(
+  swipeService: SwipeService,
+  profileService: ProfileService,
+  peopleService: PeopleService,
+  options: AppOptions = {},
+) {
   const app = express();
   app.use(express.json());
 
   app.use(IMAGE_PATH, express.static(assetsDir));
+
+  // 200 with { people }: everyone except the user, best match first. compatibility is a percentage, or null when there are no shared swipes.
+  app.get("/api/people", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json({ people: peopleService.listPeople(userId) });
+  });
+
+  // 200 with { memes }: the memes both people liked. 404 for an unknown nickname.
+  app.get("/api/people/:nickname/shared-memes", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    try {
+      res.json({ memes: peopleService.listSharedLikes(userId, req.params.nickname) });
+    } catch (err) {
+      if (err instanceof UnknownPersonError) {
+        res.status(404).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  });
+
+  // 200 with { profile }. A user without a profile gets a generated one, so this never returns 404.
+  app.get("/api/profile", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json({ profile: profileService.getProfile(userId) });
+  });
+
+  // 200 with { profile }. 400 for an invalid nickname or emoji, 409 when the nickname is taken (ignoring case).
+  app.put("/api/profile", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    try {
+      res.json({ profile: profileService.updateProfile(userId, req.body ?? {}) });
+    } catch (err) {
+      if (err instanceof InvalidProfileError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      if (err instanceof NicknameTakenError) {
+        res.status(409).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  });
+
+  // 200 with { userId, profile } for an existing nickname (ignoring case). No password and no X-User-Id header.
+  app.post("/api/login", (req, res) => {
+    try {
+      res.json(profileService.signIn((req.body ?? {}).nickname));
+    } catch (err) {
+      if (err instanceof InvalidProfileError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      if (err instanceof UnknownNicknameError) {
+        res.status(404).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  });
 
   // 200 with { meme }, including the meme's stats across all users. When the user has swiped every meme, meme is null.
   app.get("/api/memes/next", (req, res) => {
