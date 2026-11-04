@@ -60,4 +60,23 @@ describe("persistence across a backend restart", () => {
     expect(otherUserLikes.body.memes).toEqual([]);
     after.close();
   });
+
+  it("keeps counting a user's swipes after a restart", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "meme-tinder-"));
+    dirs.push(dir);
+    const databasePath = join(dir, "meme-tinder.db");
+    const swipeNext = async (app: ReturnType<typeof startBackend>["app"]) => {
+      const meme = (await request(app).get("/api/memes/next").set("X-User-Id", "chaz")).body.meme;
+      return request(app).post("/api/swipes").set("X-User-Id", "chaz").send({ memeId: meme.id, direction: "nope" });
+    };
+
+    const before = startBackend(databasePath);
+    await swipeNext(before.app);
+    expect((await swipeNext(before.app)).body.swipeCount).toBe(2);
+    before.close();
+
+    const after = startBackend(databasePath);
+    expect((await swipeNext(after.app)).body.swipeCount).toBe(3);
+    after.close();
+  });
 });

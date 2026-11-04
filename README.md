@@ -35,12 +35,12 @@ Open http://localhost:5173, then swipe memes by dragging the card, with the Like
 
 All endpoints are under `/api` and need an `X-User-Id` header (the frontend creates an anonymous id on first visit and stores it in localStorage).
 
-| Endpoint                | Description                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `GET /api/memes/next`   | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped |
-| `POST /api/swipes`      | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                       |
-| `GET /api/likes`        | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
-| `DELETE /api/swipes`    | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
+| Endpoint              | Description                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/memes/next` | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped             |
+| `POST /api/swipes`    | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe and the user's total `swipeCount` |
+| `GET /api/likes`      | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)                       |
+| `DELETE /api/swipes`  | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                             |
 | `GET /api/profile`      | `200 { "profile": { "nickname", "emoji" } }`. A user without a profile gets a generated one ("Meme Fan 4821")  |
 | `PUT /api/profile`      | Body `{ "nickname": "...", "emoji": "..." }` (nickname 1 to 20 characters, one emoji). `200` with the profile   |
 | `POST /api/login`       | Body `{ "nickname": "..." }`. `200 { "userId", "profile" }`; needs no `X-User-Id` header and no password        |

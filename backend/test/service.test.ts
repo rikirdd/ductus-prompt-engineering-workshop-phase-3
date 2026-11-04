@@ -36,6 +36,28 @@ describe("swipe service", () => {
     expect(service.getNextMeme("u1")?.id).toBe("b");
   });
 
+  it("counts the user's swipes, likes and nopes alike", () => {
+    const service = setup();
+    expect(service.countSwipes("u1")).toBe(0);
+
+    service.recordSwipe("u1", "a", "like");
+    service.recordSwipe("u1", "b", "nope");
+
+    expect(service.countSwipes("u1")).toBe(2);
+    expect(service.countSwipes("u2")).toBe(0);
+  });
+
+  it("counts a repeat swipe of the same meme once and starts over after a reset", () => {
+    const service = setup();
+    service.recordSwipe("u1", "a", "like");
+    service.recordSwipe("u1", "a", "nope");
+    expect(service.countSwipes("u1")).toBe(1);
+
+    service.resetSwipes("u1");
+
+    expect(service.countSwipes("u1")).toBe(0);
+  });
+
   it("keeps swipe history separate per user", () => {
     const service = setup();
     service.recordSwipe("u1", "a", "like");
