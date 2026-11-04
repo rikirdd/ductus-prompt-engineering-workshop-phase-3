@@ -22,7 +22,10 @@ function drag(card: HTMLElement, distance: number) {
 }
 
 beforeEach(() => vi.useFakeTimers());
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe("MemeCard", () => {
   it("shows the meme image with the caption as alt text", () => {
@@ -189,6 +192,57 @@ describe("MemeCard", () => {
       fireEvent.keyDown(window, { key: "ArrowLeft" });
       finishStamp();
       expect(onSwipe).toHaveBeenLastCalledWith("nope");
+    });
+  });
+
+  describe("transitions", () => {
+    it("springs in when it appears", () => {
+      const { card } = setup();
+
+      expect(card).toHaveClass("meme-card");
+      expect(card).not.toHaveClass("leaving");
+    });
+
+    const swipes: [string, string, (card: HTMLElement) => void][] = [
+      ["the Like button", "like", () => fireEvent.click(screen.getByRole("button", { name: "Like" }))],
+      ["the Nope button", "nope", () => fireEvent.click(screen.getByRole("button", { name: "Nope" }))],
+      ["the right arrow", "like", () => fireEvent.keyDown(window, { key: "ArrowRight" })],
+      ["the left arrow", "nope", () => fireEvent.keyDown(window, { key: "ArrowLeft" })],
+      ["a right drag", "like", (card) => drag(card, SWIPE_THRESHOLD)],
+      ["a left drag", "nope", (card) => drag(card, -SWIPE_THRESHOLD)],
+    ];
+
+    it.each(swipes)("flies off in the swipe direction after %s", (_, direction, swipe) => {
+      const { card } = setup();
+
+      swipe(card);
+
+      expect(card).toHaveClass("leaving");
+      expect(card.style.transform).toContain(direction === "like" ? "translateX(600px)" : "translateX(-600px)");
+      expect(card.style.opacity).toBe("0");
+    });
+
+    it("fades out without flying off when the user prefers reduced motion", () => {
+      vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+      const { card } = setup();
+
+      fireEvent.click(screen.getByRole("button", { name: "Like" }));
+
+      expect(card).toHaveClass("leaving");
+      expect(card.style.transform).toContain("translateX(0px)");
+      expect(card.style.opacity).toBe("0");
+    });
+
+    it("comes back when the swipe has settled without replacing the card", async () => {
+      const onSwipe = vi.fn().mockResolvedValue(undefined);
+      render(<MemeCard meme={meme} onSwipe={onSwipe} />);
+      const card = screen.getByRole("img", { name: meme.caption }).closest("figure")!;
+      fireEvent.click(screen.getByRole("button", { name: "Like" }));
+
+      await act(async () => vi.advanceTimersByTime(STAMP_DURATION_MS));
+
+      expect(card).not.toHaveClass("leaving");
+      expect(card.style.transform).toContain("translateX(0px)");
     });
   });
 });
