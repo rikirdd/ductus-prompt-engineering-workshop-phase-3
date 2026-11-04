@@ -1,10 +1,12 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
+import { createFileImageStore } from "../src/memes/images.js";
+import { createMemeService } from "../src/memes/service.js";
 import { seedMemeRepository } from "../src/memes/seed.js";
 import { createSqliteMemeRepository } from "../src/memes/sqlite.js";
 import { createSwipeService } from "../src/swipes/service.js";
@@ -19,7 +21,12 @@ afterEach(() => {
 function startBackend(databasePath: string) {
   const memes = seedMemeRepository(createSqliteMemeRepository(databasePath));
   const swipes = createSqliteSwipeRepository(databasePath);
-  const app = createApp(createSwipeService(createMemeCatalog(memes), swipes));
+  const imageStore = createFileImageStore(join(dirname(databasePath), "uploads"));
+  const app = createApp(
+    createSwipeService(createMemeCatalog(memes), swipes),
+    createMemeService(memes, imageStore),
+    imageStore,
+  );
   return {
     app,
     close: () => {
@@ -56,6 +63,30 @@ describe("persistence across a backend restart", () => {
 
     const otherUserLikes = await request(after.app).get("/api/likes").set("X-User-Id", "mum");
     expect(otherUserLikes.body.memes).toEqual([]);
+    after.close();
+  });
+
+  it("keeps a posted meme and its image, and serves it to other users", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "meme-tinder-"));
+    dirs.push(dir);
+    const databasePath = join(dir, "meme-tinder.db");
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("png body")]);
+
+    const before = startBackend(databasePath);
+    const { meme } = (
+      await request(before.app)
+        .post("/api/memes")
+        .set("X-User-Id", "chaz")
+        .send({ caption: "Posted before restart", image: png.toString("base64") })
+        .expect(201)
+    ).body;
+    before.close();
+
+    const after = startBackend(databasePath);
+    await request(after.app).get(meme.imageUrl).expect(200).expect("Content-Type", "image/png");
+    await request(after.app).post("/api/swipes").set("X-User-Id", "mum").send({ memeId: meme.id, direction: "like" }).expect(200);
+    const likes = await request(after.app).get("/api/likes").set("X-User-Id", "mum");
+    expect(likes.body.memes).toEqual([meme]);
     after.close();
   });
 });

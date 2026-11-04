@@ -2,6 +2,8 @@ import express, { type NextFunction, type Request, type Response } from "express
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { IMAGE_PATH } from "./memes/catalog.js";
+import type { ImageStore } from "./memes/images.js";
+import { InvalidMemeError, ImageTooLargeError, type MemeService } from "./memes/service.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
 import { UnknownMemeError, type SwipeService } from "./swipes/service.js";
 
@@ -26,17 +28,62 @@ export interface AppOptions {
   staticDir?: string;
 }
 
-export function createApp(swipeService: SwipeService, options: AppOptions = {}) {
+/** Posted images are base64 in JSON, which is about a third larger than the file (limit is 5 MB of image). */
+const MEME_UPLOAD_BODY_LIMIT = "8mb";
+
+export function createApp(
+  swipeService: SwipeService,
+  memeService: MemeService,
+  imageStore: ImageStore,
+  options: AppOptions = {},
+) {
   const app = express();
-  app.use(express.json());
+  const defaultJson = express.json();
+  const memeUploadJson = express.json({ limit: MEME_UPLOAD_BODY_LIMIT });
+  app.use((req, res, next) => (req.method === "POST" && req.path === "/api/memes" ? memeUploadJson : defaultJson)(req, res, next));
 
   app.use(IMAGE_PATH, express.static(assetsDir));
+  // Uploaded images. nosniff keeps browsers from treating a file as anything other than the type it is served as.
+  app.use(IMAGE_PATH, express.static(imageStore.directory, { setHeaders: (res) => res.setHeader("X-Content-Type-Options", "nosniff") }));
 
   // 200 with { meme }. When the user has swiped every meme, meme is null.
   app.get("/api/memes/next", (req, res) => {
     const userId = requireUserId(req, res);
     if (!userId) return;
     res.json({ meme: swipeService.getNextMeme(userId) });
+  });
+
+  // 201 with { meme }. Body: { caption, image } where image is the file as base64 (a data URL is fine too).
+  app.post("/api/memes", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    const { caption, image } = req.body ?? {};
+    if (typeof caption !== "string" || !caption.trim()) {
+      res.status(400).json({ error: "caption is required" });
+      return;
+    }
+    if (typeof image !== "string" || !image) {
+      res.status(400).json({ error: "image is required" });
+      return;
+    }
+    const base64 = image.replace(/^data:[^,]*;base64,/, "");
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
+      res.status(400).json({ error: "image must be base64 encoded" });
+      return;
+    }
+    try {
+      res.status(201).json({ meme: memeService.postMeme({ caption, image: Buffer.from(base64, "base64") }) });
+    } catch (err) {
+      if (err instanceof ImageTooLargeError) {
+        res.status(413).json({ error: err.message });
+        return;
+      }
+      if (err instanceof InvalidMemeError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
   });
 
   // 200 with the stored swipe. Swiping the same meme twice keeps the first swipe.

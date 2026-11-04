@@ -40,7 +40,10 @@ All endpoints are under `/api` and need an `X-User-Id` header (the frontend crea
 | `GET /api/memes/next`   | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped |
 | `POST /api/swipes`      | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                       |
 | `GET /api/likes`        | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
+| `POST /api/memes`       | Body `{ "caption": "...", "image": "<base64 or data URL>" }` with a PNG or JPEG (max 5 MB, caption max 140 characters). `201 { "meme": {...} }`; the meme appears in every user's pile. `400` for invalid input, `413` when the image is too large |
 | `DELETE /api/swipes`    | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
+
+Posted images are saved as files in `UPLOAD_DIR` (default: an `uploads` folder next to the database) and served under `/api/memes/images/`.
 
 Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id. Swiping the same meme twice is idempotent: the first swipe is kept.
 
